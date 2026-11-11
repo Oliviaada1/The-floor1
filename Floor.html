@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>لعبة المواجهة - The Floor</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts: Cairo & Tajawal -->
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@400;700;900&display=swap" rel="stylesheet">
+    <style>
+        * {
+            font-family: 'Cairo', 'Tajawal', sans-serif;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Neon Glow Effects */
+        .neon-border-blue {
+            box-shadow: 0 0 20px rgba(59, 130, 246, 0.6), inset 0 0 15px rgba(59, 130, 246, 0.3);
+        }
+        .neon-border-purple {
+            box-shadow: 0 0 20px rgba(168, 85, 247, 0.6), inset 0 0 15px rgba(168, 85, 247, 0.3);
+        }
+        .neon-glow-amber {
+            box-shadow: 0 0 25px rgba(245, 158, 11, 0.7);
+        }
+
+        /* Animated Grid Background */
+        .floor-grid {
+            background-size: 50px 50px;
+            background-image: 
+                linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+        }
+
+        /* Custom Pulse Animations */
+        @keyframes active-pulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.96; transform: scale(1.01); }
+        }
+        .animate-active-turn {
+            animation: active-pulse 1.2s infinite ease-in-out;
+        }
+
+        /* Shake animation for wrong answers */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
+        }
+        .animate-shake {
+            animation: shake 0.35s ease-in-out;
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between overflow-x-hidden floor-grid">
+
+    <!-- Top Header -->
+    <header class="w-full bg-slate-900/90 backdrop-blur-md border-b border-slate-800 p-4 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto flex justify-between items-center">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-cyan-500 via-indigo-600 to-purple-600 flex items-center justify-center font-black text-xl shadow-lg shadow-indigo-500/30">
+                    F
+                </div>
+                <div>
+                    <h1 class="text-xl sm:text-2xl font-black tracking-wider bg-clip-text text-transparent bg-gradient-to-r from-cyan-400 via-indigo-400 to-purple-400">
+                        المواجهة <span class="text-xs px-2 py-0.5 rounded bg-slate-800 text-cyan-400 border border-cyan-500/30 font-sans">THE FLOOR</span>
+                    </h1>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <button id="soundToggleBtn" class="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition border border-slate-700 flex items-center gap-1.5">
+                    <i id="soundIcon" class="fa-solid fa-volume-high text-cyan-400"></i>
+                </button>
+                <button id="restartBtn" class="hidden px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-sm font-semibold transition border border-slate-700 flex items-center gap-2">
+                    <i class="fa-solid fa-rotate-right"></i> القائمة الرئيسية
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="max-w-5xl w-full mx-auto p-4 flex-1 flex flex-col justify-center items-center relative">
+
+        <!-- 1. SETUP SCREEN -->
+        <section id="setupScreen" class="w-full max-w-4xl bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-8 shadow-2xl backdrop-blur-md my-6">
+            <div class="text-center mb-6">
+                <h2 class="text-2xl sm:text-3xl font-extrabold text-white mb-2">إعداد مواجهة The Floor</h2>
+                <p class="text-slate-400 text-xs sm:text-sm">اختر المتنافسين والوقت والتصنيف من بين 30 مجالك للانطلاق في التحدي</p>
+            </div>
+
+            <!-- Player Names Input & Time Setting -->
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+                <!-- Player 1 -->
+                <div class="bg-slate-950/70 p-4 rounded-xl border border-cyan-500/30 focus-within:border-cyan-400 transition">
+                    <label class="block text-cyan-400 text-xs font-bold mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-user-ninja"></i> المتسابق الأول (الأزرق)
+                    </label>
+                    <input type="text" id="player1Input" value="اللاعب 1" placeholder="أدخل الاسم..." class="w-full bg-slate-900 text-white rounded-lg px-3 py-2 border border-slate-700 focus:outline-none focus:border-cyan-400 text-sm font-bold">
+                </div>
+
+                <!-- Match Time Limit -->
+                <div class="bg-slate-950/70 p-4 rounded-xl border border-amber-500/30 focus-within:border-amber-400 transition">
+                    <label class="block text-amber-400 text-xs font-bold mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-stopwatch"></i> وقت كل متسابق
+                    </label>
+                    <select id="timeSelect" class="w-full bg-slate-900 text-white rounded-lg px-3 py-2 border border-slate-700 focus:outline-none focus:border-amber-400 text-sm font-bold">
+                        <option value="45">45 ثانية (النظام الأصلي)</option>
+                        <option value="30">30 ثانية (مواجهة سريعة)</option>
+                        <option value="60">60 ثانية (مواجهة طويلة)</option>
+                    </select>
+                </div>
+
+                <!-- Player 2 -->
+                <div class="bg-slate-950/70 p-4 rounded-xl border border-purple-500/30 focus-within:border-purple-400 transition">
+                    <label class="block text-purple-400 text-xs font-bold mb-2 flex items-center gap-2">
+                        <i class="fa-solid fa-user-ninja"></i> المتسابق الثاني (البنفسجي)
+                    </label>
+                    <input type="text" id="player2Input" value="اللاعب 2" placeholder="أدخل الاسم..." class="w-full bg-slate-900 text-white rounded-lg px-3 py-2 border border-slate-700 focus:outline-none focus:border-purple-400 text-sm font-bold">
+                </div>
+            </div>
+
+            <!-- Categories Selection Grid (30 Categories) -->
+            <div class="mb-6">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-3 mb-4">
+                    <label class="text-slate-200 font-bold text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-layer-group text-amber-400"></i> اختر فئة التحدي (30 تصنيفاً متاملاً):
+                    </label>
+                    <div class="flex items-center gap-2 w-full sm:w-auto">
+                        <div class="relative w-full sm:w-56">
+                            <input type="text" id="categorySearchInput" placeholder="بحث عن تصنيف..." class="w-full bg-slate-950 text-slate-200 text-xs rounded-lg pl-3 pr-8 py-2 border border-slate-700 focus:outline-none focus:border-cyan-400">
+                            <i class="fa-solid fa-magnifying-glass absolute right-2.5 top-2.5 text-slate-500 text-xs"></i>
+                        </div>
+                        <button id="randomCategoryBtn" class="whitespace-nowrap text-xs text-indigo-400 hover:text-indigo-300 font-bold bg-indigo-500/10 px-3 py-2 rounded-lg border border-indigo-500/30 transition flex items-center gap-1.5">
+                            <i class="fa-solid fa-dice"></i> عشوائي
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-2.5 max-h-80 overflow-y-auto p-2 bg-slate-950/60 rounded-xl border border-slate-800" id="categoriesGrid">
+                    <!-- Dynamic rendering of 30 categories -->
+                </div>
+            </div>
+
+            <!-- Start Game Button -->
+            <button id="startGameBtn" class="w-full py-4 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-black text-lg rounded-xl shadow-lg shadow-indigo-500/25 transition transform active:scale-95 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i> ابدأ المواجهة الآن
+            </button>
+        </section>
+
+        <!-- 2. GAME ARENA SCREEN -->
+        <section id="gameScreen" class="w-full hidden flex-col gap-5 my-2">
+            
+            <!-- Category Badge & Turn Banner -->
+            <div class="flex flex-col sm:flex-row justify-between items-center gap-3 bg-slate-900/80 border border-slate-800 p-3 rounded-xl backdrop-blur-md">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs text-slate-400">التصنيف الحالي:</span>
+                    <span id="currentCategoryBadge" class="bg-indigo-500/20 text-indigo-300 border border-indigo-500/40 px-3 py-1 rounded-full text-xs font-bold flex items-center gap-1.5">
+                        <i id="currentCategoryIcon" class="fa-solid fa-star"></i> <span id="currentCategoryText">--</span>
+                    </span>
+                </div>
+                <div id="turnIndicator" class="text-sm font-bold px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30">
+                    دور: <span id="activePlayerName">--</span>
+                </div>
+            </div>
+
+            <!-- Dual Clocks Row -->
+            <div class="grid grid-cols-2 gap-4 sm:gap-6">
+                <!-- Player 1 Clock Card -->
+                <div id="p1ClockCard" class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-4 sm:p-6 text-center transition-all duration-300 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1.5 bg-cyan-500"></div>
+                    <div id="p1Name" class="text-slate-300 font-bold text-sm sm:text-base mb-1 truncate">اللاعب 1</div>
+                    <div id="p1Timer" class="text-4xl sm:text-6xl font-black text-cyan-400 font-mono tracking-wider">
+                        45.0
+                    </div>
+                    <div class="text-[10px] sm:text-xs text-slate-500 mt-1">ثانية متبقية</div>
+                </div>
+
+                <!-- Player 2 Clock Card -->
+                <div id="p2ClockCard" class="bg-slate-900 border-2 border-slate-800 rounded-2xl p-4 sm:p-6 text-center transition-all duration-300 relative overflow-hidden">
+                    <div class="absolute top-0 right-0 left-0 h-1.5 bg-purple-500"></div>
+                    <div id="p2Name" class="text-slate-300 font-bold text-sm sm:text-base mb-1 truncate">اللاعب 2</div>
+                    <div id="p2Timer" class="text-4xl sm:text-6xl font-black text-purple-400 font-mono tracking-wider">
+                        45.0
+                    </div>
+                    <div class="text-[10px] sm:text-xs text-slate-500 mt-1">ثانية متبقية</div>
+                </div>
+            </div>
+
+            <!-- Main Question Box -->
+            <div id="questionBox" class="bg-slate-900/90 border border-slate-800 rounded-2xl p-5 sm:p-7 shadow-2xl backdrop-blur-md flex flex-col items-center justify-center text-center relative min-h-[340px]">
+                
+                <!-- Feedback Toast -->
+                <div id="feedbackToast" class="absolute top-3 opacity-0 transition-opacity duration-300 px-4 py-1.5 rounded-full text-xs font-bold pointer-events-none z-20">
+                </div>
+
+                <!-- Question Content Container -->
+                <div class="w-full max-w-xl flex flex-col items-center">
+                    
+                    <!-- Image Container (Optional for Logos/Images) -->
+                    <div id="imageContainer" class="hidden mb-4 rounded-xl overflow-hidden border border-slate-700 bg-slate-950 w-full max-w-xs h-40 flex items-center justify-center relative">
+                        <img id="questionImage" src="" alt="سؤال مصور" class="object-cover w-full h-full" onerror="this.src='https://placehold.co/400x300/1e293b/ffffff?text=Image+Error'">
+                    </div>
+
+                    <!-- Question Text -->
+                    <h3 id="questionText" class="text-lg sm:text-2xl font-extrabold text-white mb-6 leading-relaxed">
+                        جارٍ تحميل السؤال...
+                    </h3>
+
+                    <!-- Dynamic Options Grid -->
+                    <div id="answersArea" class="w-full grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                        <!-- Option buttons generated dynamically -->
+                    </div>
+
+                    <!-- Pass Button -->
+                    <div class="w-full flex justify-center mt-2 border-t border-slate-800/80 pt-4">
+                        <button id="passBtn" class="px-6 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-xl font-bold text-sm transition flex items-center gap-2 active:scale-95">
+                            <i class="fa-solid fa-forward"></i> تخطي السؤال (خصم 3 ثوانٍ)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. WINNER SCREEN MODAL -->
+        <section id="winnerScreen" class="w-full max-w-md hidden bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center shadow-2xl relative my-8">
+            <div class="w-24 h-24 mx-auto mb-4 rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/40 flex items-center justify-center text-5xl shadow-lg neon-glow-amber">
+                <i class="fa-solid fa-trophy"></i>
+            </div>
+            <h2 class="text-3xl font-black text-white mb-1">فوز مستحق!</h2>
+            <p class="text-slate-400 text-sm mb-6">انتهى الوقت لدى المنافس في أرض المواجهة</p>
+
+            <div class="bg-slate-950/80 p-4 rounded-xl border border-slate-800 mb-6">
+                <div class="text-xs text-slate-500 mb-1">بطل هذه المواجهة</div>
+                <div id="winnerName" class="text-2xl font-black text-amber-400">اللاعب</div>
+                <div id="winnerTime" class="text-xs text-slate-400 mt-2">المتبقي في رصيده: <span class="font-bold text-amber-300">0</span> ثانية</div>
+            </div>
+
+            <button id="playAgainBtn" class="w-full py-3.5 bg-gradient-to-r from-cyan-500 via-indigo-600 to-purple-600 hover:from-cyan-400 hover:to-purple-500 text-white font-bold rounded-xl shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
+                <i class="fa-solid fa-play"></i> مواجهة جديدة
+            </button>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full border-t border-slate-800/60 p-4 text-center text-xs text-slate-500">
+        تطبيق اللعبة المستوحاة من برنامج المسابقات الشهير <span class="text-slate-400 font-semibold">The Floor</span>
+    </footer>
+
+    <!-- Game Logic & Database -->
+    <script>
+        /* ==========================================================================
+           1. COMPREHENSIVE 30 CATEGORIES DATABASE WITH MASSIVE QUESTION BANK
+           ========================================================================== */
+        const QUESTION_DATABASE = {
+            cinema: {
+                name: "أفلام وسينما",
+                icon: "fa-film",
+                questions: [
+                    { q: "من هو المخرج العالمي صاحب فيلم 'Avatar' و 'Titanic'؟", options: ["جيمس كاميرون", "ستيفن سبيلبرغ", "كريستوفر نولان", "مارتن سكورسيزي"], answer: 0 },
+                    { q: "أي فيلم فاز بأوسكار أفضل فيلم لعام 2024؟", options: ["Oppenheimer", "Barbie", "Dune: Part Two", "Poor Things"], answer: 0 },
+                    { q: "شخصية 'الجوكر' الشهيرة تُعتبر الخصم الرئيسي لأي بطل خارق؟", options: ["باتمان", "سوپرمان", "سبايدرمان", "آيرون مان"], answer: 0 },
+                    { q: "من هو الممثل الذي أدى دور 'كابتن جاك سبارو' في سلسلة القراصنة؟", options: ["جوني ديب", "براد بيت", "توم كروز", "ليوناردو دي كابريو"], answer: 0 },
+                    { q: "ما اسم السلسلة الشهيرة التي تدور حول عالم الديناصورات؟", options: ["الحديقة الجوراسية", "هاري بوتر", "ماتريكس", "مهمة مستحيلة"], answer: 0 },
+                    { q: "من قام بدور البطولة في فيلم 'Forrest Gump'؟", options: ["توم هانكس", "ويل سميث", "نيكولاس كيج", "كيانو ريفز"], answer: 0 },
+                    { q: "أي مخرج أخرج فيلم 'Inception' و 'Interstellar'؟", options: ["كريستوفر نولان", "ستيفن سبيلبرغ", "كوينتن تارانتينو", "ديفيد فينشر"], answer: 0 },
+                    { q: "ما اسم سفينة الفضاء الشهيرة في سلسلة حرب النجوم التي يقودها هان سولو؟", options: ["ميلينيوم فالكون", "إنتربرايز", "ديث ستار", "درويد"], answer: 0 },
+                    { q: "من قام بدور البطل في فيلم 'Gladiator' الصادر عام 2000؟", options: ["راسل كرو", "واكين فينيكس", "براد بيت", "ميل جيبسون"], answer: 0 },
+                    { q: "أي فيلم انيميشن يتناول قصة لعبة تتحرك عندما يغادر البشر؟", options: ["حكاية لعبة (Toy Story)", "شركة المرعبين المحدودة", "البحث عن نيمو", "سيارات"], answer: 0 }
+                ]
+            },
+            tech: {
+                name: "تكنولوجيا وبرمجة",
+                icon: "fa-microchip",
+                questions: [
+                    { q: "ما اسم الشركة الأم الحالية لشركة جوجل (Google)؟", options: ["Alphabet", "Meta", "Microsoft", "Amazon"], answer: 0 },
+                    { q: "ماذا تعني اختصار 'AI' باللغة الإنجليزية؟", options: ["الذكاء الاصطناعي", "الانترنت التفاعلي", "الأجهزة الذكية", "معالجة البيانات"], answer: 0 },
+                    { q: "من هو مؤسس شركة برمجيات مايكروسوفت؟", options: ["بيل غيتس", "ستيف جوبز", "إيلون ماسك", "مارك زوكربرغ"], answer: 0 },
+                    { q: "أي لغة برمجية تُستخدم بشكل أساسي لبناء وتطوير صفحات الويب التفاعلية؟", options: ["JavaScript", "Python", "C++", "SQL"], answer: 0 },
+                    { q: "ماذا تعني اختصار كلمة 'CPU' في أجهزة الحاسوب؟", options: ["وحدة المعالجة المركزية", "وحدة التخزين المؤقت", "وحدة الرسوميات", "الذاكرة العشوائية"], answer: 0 },
+                    { q: "ما هو النظام التشغيلي الأكثر استخداماً في الهواتف الذكية حول العالم؟", options: ["أندرويد (Android)", "iOS", "ويندوز فون", "لينكس"], answer: 0 },
+                    { q: "أي شركة طوّرت أجهزة الآيفون والماك؟", options: ["آبل (Apple)", "سامسونج", "سوني", "إنتل"], answer: 0 },
+                    { q: "ماذا تعني ذاكرة 'RAM' في الكمبيوتر؟", options: ["ذاكرة الوصول العشوائي", "ذاكرة القراءة فقط", "المعالج الأساسي", "قرص التخزين الصلب"], answer: 0 },
+                    { q: "ما هو البروتوكول المشفر المعتمد لتصفح الويب الآمن؟", options: ["HTTPS", "FTP", "SMTP", "UDP"], answer: 0 },
+                    { q: "ما اسم نموذج الذكاء الاصطناعي الشهير الذي طورته شركة OpenAI؟", options: ["ChatGPT", "Gemini", "Claude", "Copilot"], answer: 0 }
+                ]
+            },
+            geography: {
+                name: "جغرافيا ودول",
+                icon: "fa-earth-americas",
+                questions: [
+                    { q: "ما هي أكبر دولة في العالم من حيث المساحة؟", options: ["روسيا", "كندا", "الصين", "الولايات المتحدة"], answer: 0 },
+                    { q: "ما هو أطول نهر في العالم؟", options: ["نهر النيل", "نهر الأمازون", "نهر اليانغتسي", "نهر الميسيسيبي"], answer: 0 },
+                    { q: "في أي قارة تقع دولة البرازيل؟", options: ["أمريكا الجنوبية", "أمريكا الشمالية", "أفريقيا", "آسيا"], answer: 0 },
+                    { q: "ما هي أعلى قمة جبلية في العالم فوق سطح البحر؟", options: ["قمة إيفرست", "جبل كيليمانجارو", "جبل كينلي", "جبل ألب"], answer: 0 },
+                    { q: "ما هو أكبر بحر مغلق في العالم؟", options: ["بحر قزوين", "البحر الميت", "البحر الأسود", "البحر الأحمر"], answer: 0 },
+                    { q: "أي دولة تُعرف بلقب 'كوكب اليابان' وتتكون من مجموعة جزر؟", options: ["اليابان", "إندونيسيا", "الفلبين", "ماليزيا"], answer: 0 },
+                    { q: "ما هي أكبر قارات العالم مساحة وسكاناً؟", options: ["آسيا", "أفريقيا", "أوروبا", "أمريكا الشمالية"], answer: 0 },
+                    { q: "أين تقع الشلالات الشهيرة 'نياجرا'؟", options: ["بين كندا وأمريكا", "بين البرازيل والأرجنتين", "في سويسرا", "في زامبيا"], answer: 0 },
+                    { q: "ما هي أصغر دولة في العالم من حيث المساحة؟", options: ["الفاتيكان", "موناكو", "سان مارينو", "المالديف"], answer: 0 },
+                    { q: "أي دولة عربية يمر بها خط الاستواء؟", options: ["الصومال", "السودان", "جيبوتي", "مصر"], answer: 0 }
+                ]
+            },
+            sports: {
+                name: "رياضة وكرة قدم",
+                icon: "fa-futbol",
+                questions: [
+                    { q: "من المنتخب الفائز بكأس العالم لكرة القدم 2022؟", options: ["الأرجنتين", "فرنسا", "البرازيل", "ألمانيا"], answer: 0 },
+                    { q: "كم عدد لاعبي فريق كرة القدم داخل الملعب خلال المباراة؟", options: ["11 لاعب", "10 لاعبين", "12 لاعب", "9 لاعبين"], answer: 0 },
+                    { q: "من النادي الأكثر فوزاً بدوري أبطال أوروبا عبر التاريخ؟", options: ["ريال مدريد", "إيه سي ميلان", "بايرن ميونخ", "برشلونة"], answer: 0 },
+                    { q: "كم دقيقة مدة شوط مباراة كرة القدم النظامي؟", options: ["45 دقيقة", "40 دقيقة", "50 دقيقة", "60 دقيقة"], answer: 0 },
+                    { q: "من هو اللاعب الملقب بـ 'الدون' وصاحب الرقم 7 التاريخي؟", options: ["كريستيانو رونالدو", "ليونيل ميسي", "نيمار", "مبابي"], answer: 0 },
+                    { q: "في أي رياضة يُستخدم المضرب والكرة الصغيرة الشفافة فوق الطاولة؟", options: ["كرة الطاولة (تنس الطاولة)", "الكرة الطائرة", "التنس الأرضي", "الريشة الطائرة"], answer: 0 },
+                    { q: "كم عدد الحلقات الملونة الموجودة في العلم الأولمبي الرسمي؟", options: ["5 حلقات", "6 حلقات", "4 حلقات", "7 حلقات"], answer: 0 },
+                    { q: "ما هي البطولة الكبرى للتنس التي تقام على الملاعب العشبية في لندن؟", options: ["ويمبلدون", "رولان غاروس", "أمريكا المفتوحة", "أستراليا المفتوحة"], answer: 0 },
+                    { q: "من هو العداء الجمايكي صاحب الرقم القياسي في سباق 100 متر؟", options: ["يوسين بولت", "تايسون غاي", "جاستن غاتلين", "أسافا باول"], answer: 0 },
+                    { q: "أي منتخب ينتمي له أسطورة كرة القدم الجوهرة السوداء 'بيليه'؟", options: ["البرازيل", "الأرجنتين", "الأوروغواي", "كولومبيا"], answer: 0 }
+                ]
+            },
+            history: {
+                name: "تاريخ وحضارات",
+                icon: "fa-landmark",
+                questions: [
+                    { q: "أين بنيت الأهرامات الثلاثة الشهيرة؟", options: ["الجيزة - مصر", "بغداد - العراق", "عمان - الأردن", "الخرطوم - السودان"], answer: 0 },
+                    { q: "أي حضارة قامت ببناء مدرج الكولوسيوم الشهير؟", options: ["الحضارة الرومانية", "الحضارة الإغريقية", "الحضارة البابلية", "الحضارة الفارسية"], answer: 0 },
+                    { q: "في أي عام انتهت الحرب العالمية الثانية؟", options: ["1945", "1918", "1939", "1950"], answer: 0 },
+                    { q: "من هو القائد المسلم الذي فتح الأندلس؟", options: ["طارق بن زياد", "صلاح الدين الأيوبي", "خالد بن الوليد", "عقبة بن نافع"], answer: 0 },
+                    { q: "ما اسم الحضارة القديمة التي نشأت بين نهري دجلة والفرات؟", options: ["الحضارة البابلية / بلاد الرافدين", "الحضارة الفرعونية", "حضارة المايا", "حضارة الفينيقيين"], answer: 0 },
+                    { q: "من هو الإمبراطور الفرنسي الذي نفي إلى جزيرة سانت هيلانة؟", options: ["نابلون بونابرت", "لويس الرابع عشر", "شارلمان", "شارل ديغول"], answer: 0 },
+                    { q: "في أي عام سقطت الجدار الشهير 'جدار برلين'؟", options: ["1989", "1975", "1995", "1980"], answer: 0 },
+                    { q: "من هو مؤسس الدولة العباسية؟", options: ["أبو العباس السفاح", "هارون الرشيد", "المأمون", "أبو جعفر المنصور"], answer: 0 },
+                    { q: "أي معركة شهدت انتصار صلاح الدين الأيوبي واستعادة القدس؟", options: ["معركة حطين", "معركة عين جالوت", "معركة اليرموك", "معركة القادسية"], answer: 0 },
+                    { q: "ما هي المدينة التي كانت عاصمة الإمبراطورية البيزنطية؟", options: ["القسطنطينية", "روما", "أثينا", "الإسكندرية"], answer: 0 }
+                ]
+            },
+            science: {
+                name: "علوم وفضاء",
+                icon: "fa-flask-vial",
+                questions: [
+                    { q: "ما هو العنصر الكيميائي الذي رمزه 'O' في الجدول الدوري؟", options: ["الأكسجين", "الذهب", "الحديد", "الهيدروجين"], answer: 0 },
+                    { q: "ما هو الكوكب المسمى بالكوكب الأحمر؟", options: ["المريخ", "الزهرة", "المشتري", "زحل"], answer: 0 },
+                    { q: "ما هي الوحدة الأساسية لبناء كائنات الحياة؟", options: ["الخلية", "الذرة", "النسيج", "العضو"], answer: 0 },
+                    { q: "كم يبلغ سرعة الضوء تقريباً في الفراغ؟", options: ["300 ألف كم/ثانية", "150 ألف كم/ثانية", "500 ألف كم/ثانية", "1 مليون كم/ثانية"], answer: 0 },
+                    { q: "ما هو أقرب كوكب إلى كوكب الأرض؟", options: ["الزهرة", "المريخ", "عطارد", "المشتري"], answer: 0 },
+                    { q: "ما القوة التي تبقي الكواكب في مداراتها حول الشمس؟", options: ["الجاذبية", "الكهرومغناطيسية", "الضغط الجوي", "الاحتكاك"], answer: 0 },
+                    { q: "أي طبقة من الغلاف الجوي تحمي الأرض من الأشعة الضارة فوق البنفسجية؟", options: ["طبقة الأوزون", "التروبوسفير", "الثرموسفير", "الميزوسفير"], answer: 0 },
+                    { q: "ما هما العنصران الأساسيان المكونان للشمس؟", options: ["الهيدروجين الهيليوم", "الأكسجين والنيتروجين", "الحديد والكربون", "الذهب والفضة"], answer: 0 },
+                    { q: "ما اسم الكوكب الأكبر حجماً في المجموعة الشمسية؟", options: ["المشتري", "زحل", "نبتون", "أورانوس"], answer: 0 },
+                    { q: "ما المادة التي تمنح الدم لونه الأحمر؟", options: ["الهيموجلوبين", "البلازما", "الصفائح الدموية", "الانسولين"], answer: 0 }
+                ]
+            },
+            literature: {
+                name: "أدب شعر ولغة",
+                icon: "fa-book-open",
+                questions: [
+                    { q: "من هو الشاعر العربي الملقب بـ 'أمير الشعراء'؟", options: ["أحمد شوقي", "حافظ إبراهيم", "المتنبي", "نزار قباني"], answer: 0 },
+                    { q: "من هو الشاعر صاحب البيت الشهير: 'الخيل والليل والبيداء تعرفني'؟", options: ["المتنبي", "عنترة بن شداد", "أبو تمام", "امرؤ القيس"], answer: 0 },
+                    { q: "ما هي أطول سورة في القرآن الكريم؟", options: ["سورة البقرة", "سورة آل عمران", "سورة النساء", "سورة الأعراف"], answer: 0 },
+                    { q: "من مؤلف رواية 'ثلاثية القاهرة' ونال جائزة نوبل للأدب؟", options: ["نجيب محفوظ", "طه حسين", "عباس العقاد", "توفيق الحكيم"], answer: 0 },
+                    { q: "ما معنى كلمة 'السيف' إذا قيل عنه 'الحسام'؟", options: ["السيف القاطع", "السيف القديم", "السيف الثقيل", "غمد السيف"], answer: 0 },
+                    { q: "من هو الشاعر الفارس الجاهلي صاحب المعلقة الشهيرة في الحب والحرب؟", options: ["عنترة بن شداد", "الأعشى", "زهير بن أبي سلمى", "النابغة الذبياني"], answer: 0 },
+                    { q: "ما هو جمع كلمة 'امرأة' في اللغة العربية؟", options: ["نساء", "امرآت", "مُمرؤات", "أمائر"], answer: 0 },
+                    { q: "من كاتب كتاب 'الأيام' الذي يروي سيرته الذاتية؟", options: ["طه حسين", "مصطفى المنفلوطي", "جبران خليل جبران", "أحمد أمين"], answer: 0 },
+                    { q: "كم عدد حروف الأبجدية في اللغة العربية؟", options: ["28 حرفاً", "26 حرفاً", "30 حرفاً", "25 حرفاً"], answer: 0 },
+                    { q: "ماذا يسمى كتاب القصص الشهير الذي يحتوي على قصص علاء الدين والسندباد؟", options: ["ألف ليلة وليلة", "كليلة ودمنة", "البخلاء", "شمس المعارف"], answer: 0 }
+                ]
+            },
+            food: {
+                name: "مطابخ وأطعمة",
+                icon: "fa-pizza-slice",
+                questions: [
+                    { q: "ما هي الدولة الموطن الأصلي لطبق 'البيتزا' الشهير؟", options: ["إيطاليا", "فرنسا", "إسبانيا", "اليونان"], answer: 0 },
+                    { q: "ما هو المكون الأساسي في أكلة 'الكبسة' التقليدية؟", options: ["الأرز", "البرغل", "المعكرونة", "الدقيق"], answer: 0 },
+                    { q: "من أي ثمرة يُستخرج زيت الزيتون الصافي؟", options: ["الزيتون", "السمسم", "جوز الهند", "النخيل"], answer: 0 },
+                    { q: "ما هي الدولة المشهورة بتقديم طبق 'السوشي' من الأسماك؟", options: ["اليابان", "الصين", "كوريا الجنوبية", "تايلاند"], answer: 0 },
+                    { q: "ما اسم الفاكهة الملقبة بـ 'ملكة الفواكه' ولها رائحة نفاذة جذاً؟", options: ["الدوريان", "المانجو", "الأناناس", "البابايا"], answer: 0 },
+                    { q: "ما هو التابل أو البهار الأغلى ثقلاً بالذهب في العالم؟", options: ["الزعفران", "الفلفل الأسود", "القرفة", "الهيل"], answer: 0 },
+                    { q: "ما هو المكون الرئيسي في طبق 'الحمص بالطحينة'؟", options: ["الحمص", "الفول", "العدس", "الفاصوليا"], answer: 0 },
+                    { q: "أي دولة تشتهر بإنتاج وتصدير أفضل أنواع الشوكولاتة السويسرية؟", options: ["سويسرا", "بلجيكا", "ألمانيا", "إيطاليا"], answer: 0 },
+                    { q: "ما اسم الحلوى الشرقية المصنوعة من عجينة الكنافة والجبنة والمكسرات؟", options: ["الكنافة النبلسية", "البقلاوة", "البسبوسة", "أم علي"], answer: 0 },
+                    { q: "ما هي الصلصة الفرنسية الشهيرة المصنوعة من صفار البيض والزيت؟", options: ["المايونيز", "الكاتشب", "الخردل", "الباربيكيو"], answer: 0 }
+                ]
+            },
+            landmarks: {
+                name: "معالم وعجائب",
+                icon: "fa-torii-gate",
+                questions: [
+                    { q: "في أي مدينة يقع برج إيفل الشهير؟", options: ["باريس", "لندن", "روما", "برلين"], answer: 0 },
+                    { q: "أين يقع برج خليفة المبنى الأطول في العالم؟", options: ["دبي", "الرياض", "الدوحة", "الكويت"], answer: 0 },
+                    { q: "أين تقع قلعة الحمراء التاريخية؟", options: ["غرناطة - إسبانيا", "إسطنبول - تركيا", "القاهرة - مصر", "فاس - المغرب"], answer: 0 },
+                    { q: "في أي دولة يقع معبد 'تاج محل' الخالد؟", options: ["الهند", "باكستان", "إندونيسيا", "إيران"], answer: 0 },
+                    { q: "أين تقع السلسلة المعمارية الشهيرة 'سور الصين العظيم'؟", options: ["الصين", "اليابان", "منغوليا", "كوريا"], answer: 0 },
+                    { q: "في أي مدينة توجد الماكينة وساعة 'بيج بن' الشهيرة؟", options: ["لندن", "نيويورك", "باريس", "سيدني"], answer: 0 },
+                    { q: "ما هي المدينة التارخية الأردنية المنحوتة في الصخور الوردية؟", options: ["البتراء", "جرش", "تدمر", "بعلبك"], answer: 0 },
+                    { q: "أين يقع تمثال الحرية الشهير؟", options: ["نيويورك", "واشنطن", "لوس أنجلوس", "شيكاغو"], answer: 0 },
+                    { q: "أين تقع الأهرامات القديمة لمدن المايا الملقبة بـ 'تشيتشن إيتزا'؟", options: ["المكسيك", "البيرو", "كولومبيا", "البرازيل"], answer: 0 },
+                    { q: "في أي مدينة تقع آيا صوفيا التاريخية؟", options: ["إسطنبول", "أثينا", "القاهرة", "دمشق"], answer: 0 }
+                ]
+            },
+            figures: {
+                name: "شخصيات تاريخية",
+                icon: "fa-user-tie",
+                questions: [
+                    { q: "من هو العالم صاحب نظرية النسبية الشهيرة؟", options: ["ألبرت أينشتاين", "إسحاق نيوتن", "نيكولا تسلا", "غاليلو غاليلي"], answer: 0 },
+                    { q: "من هو القائد صاحب ملحمة فتح القسطنطينية؟", options: ["محمد الفاتح", "سليمان القانوني", "أورخان غازي", "سليم الأول"], answer: 0 },
+                    { q: "من هي المرأة التي قادت فرنسا ضد الإنجليز وأصبحت بطلة قومية؟", options: ["جان دارك", "ماري كوري", "كليوباترا", "إليزابيث الأولى"], answer: 0 },
+                    { q: "من هو المؤسس والقائد الأول للمملكة العربية السعودية؟", options: ["الملك عبد العزيز آل سعود", "الملك فيصل", "الملك سعود", "الملك فهد"], answer: 0 },
+                    { q: "من الرسام الذي رسم لوحة 'المونا ليزا' العظيمة؟", options: ["ليوناردو دا فينشي", "مايكل أنجلو", "بيكاسو", "فان غوخ"], answer: 0 },
+                    { q: "من هو الرحالة العربي الشهير صاحب كتاب 'تحفة النظار'؟", options: ["ابن بطوطة", "الإدريسي", "ابن جبير", "المقريزي"], answer: 0 },
+                    { q: "من هو المناضل الإفريقي الشهير رمز الكفاح ضد الفصل العنصري؟", options: ["نيلسون مانديلا", "كوامي نكروما", "باتريس لومومبا", "مارتن لوثر كينغ"], answer: 0 },
+                    { q: "من العالم الذي اكتشف جاذبية الأرض بعد سقطت التفاحة؟", options: ["إسحاق نيوتن", "أينشتاين", "داروين", "تسلا"], answer: 0 },
+                    { q: "من هو الشاعر والأديب الإيطالي مؤلف 'الكوميديا الإلهية'؟", options: ["دانتي أليغييري", "بتراركا", "بوكاشيو", "فيرجيل"], answer: 0 },
+                    { q: "من هو القائد الملقب بـ 'سيف الله المسلول'؟", options: ["خالد بن الوليد", "حمزة بن عبد المطلب", "سعد بن أبي وقاص", "على بن أبي طالب"], answer: 0 }
+                ]
+            },
+            flags: {
+                name: "شعارات وأعلام",
+                icon: "fa-flag",
+                questions: [
+                    { q: "ما هما اللوان الرئيسيّان في علم دولة اليابان؟", options: ["الأبيض والأحمر", "الأزرق والأصفر", "الأخضر والأبيض", "الأحمر والأسود"], answer: 0 },
+                    { q: "شعار التفاحة المأكولة يرمز لأي شركة عالمية؟", img: "https://placehold.co/400x300/1e293b/ffffff?text=Apple+Logo", options: ["آبل (Apple)", "سامسونج", "مايكروسوفت", "هواوي"], answer: 0 },
+                    { q: "شعار الأقواس الذهبية الشهيرة على شكل M ينتمي إلى؟", img: "https://placehold.co/400x300/1e293b/ffcc00?text=McDonalds", options: ["ماكدونالدز", "برجر كنج", "كنتاكي", "هارديز"], answer: 0 },
+                    { q: "كم نجمة توجد في العلم الوطني للولايات المتحدة؟", options: ["50 نجمة", "48 نجمة", "52 نجمة", "55 نجمة"], answer: 0 },
+                    { q: "علم أي دولة يحتوي على شجرة الأرز في وسطه؟", options: ["لبنان", "كندا", "قبرص", "تونس"], answer: 0 },
+                    { q: "علم أي دولة عربية يتكون من لون أخضر فقط مكتوب عليه الشهادتان؟", options: ["المملكة العربية السعودية", "الجزائر", "موريتانيا", "الإمارات"], answer: 0 },
+                    { q: "شعار الدوائر الخمس المتداخلة يمثل أي حدث عالمي؟", options: ["الألعاب الأولمبية", "كأس العالم", "الأمم المتحدة", "الاتحاد الأوروبي"], answer: 0 },
+                    { q: "ما هما اللونان المكونان لعلم دولة قطر الرسمي؟", options: ["العنابي والأبيض", "الأحمر والأسود", "الأزرق والأبيض", "الأخضر والذهبي"], answer: 0 },
+                    { q: "علم أي دولة أوروبية يشتهر بوجود الصليب الأبيض فوق خلفية حمراء؟", options: ["سويسرا", "الدنمارك", "السويد", "إنجلترا"], answer: 0 },
+                    { q: "شعار ثلاثي الأضلاع الشهير ينتمي لشركة السيارات الفارهة؟", img: "https://placehold.co/400x300/1e293b/ffffff?text=Mercedes+Star", options: ["مرسيدس بنز", "بي إم دبليو", "أودي", "بورشه"], answer: 0 }
+                ]
+            },
+            cars: {
+                name: "سيارات ومحركات",
+                icon: "fa-car-side",
+                questions: [
+                    { q: "ما هي الدولة المصنعة لسيارات 'فراري' و'لامبورغيني'؟", options: ["إيطاليا", "ألمانيا", "اليابان", "أمريكا"], answer: 0 },
+                    { q: "ما اسم الشركة الرائدة في صناعة السيارات الكهربائية بقيادة إيلون ماسك؟", options: ["تيسلا (Tesla)", "لوسيد", "نيفادا", "نيو"], answer: 0 },
+                    { q: "شعار الدوائر الأربع المتداخلة ينتمي لأي شركة سيارات؟", options: ["أودي (Audi)", "بي إم دبليو", "مرسيدس", "فولكس فاغن"], answer: 0 },
+                    { q: "ماذا تعني عبارة 'RPM' في لوحة قيادة السيارة؟", options: ["دورات المحرك في الدقيقة", "سرعة السيارة الكلية", "مستوى زيت المحرك", "ضغط الإطارات"], answer: 0 },
+                    { q: "ما هي اكبر شركة تصنيع سيارات يابانية من حيث المبيعات؟", options: ["تويوتا (Toyota)", "نيسان", "هوندا", "مازدا"], answer: 0 },
+                    { q: "ما اسم السيارة الرياضية الشهيرة المصنوعة بواسطة شركة فورد الأمريكية؟", options: ["موستانج (Mustang)", "كورفيت", "كامارو", "شالنجر"], answer: 0 },
+                    { q: "ما هو نوع المحرك الذي يعتمد على مزيج البنزين والكهرباء؟", options: ["محرك هجين (Hybrid)", "محرك ديزل", "محرك تيربو", "محرك كهربائي"], answer: 0 },
+                    { q: "ما الشركة التي تتخذ من مدينة ميونخ الألمانية مقراً رئيساً لها؟", options: ["BMW", "Mercedes-Benz", "Porsche", "Opel"], answer: 0 },
+                    { q: "ما النظام الذي يمنع انغلاق الفرامل أثناء الضغط المفاجئ؟", options: ["ABS", "ESP", "TURBO", "GPS"], answer: 0 },
+                    { q: "ما هي أسرع سيارة إنتاجية في العالم من حيث السرعة القصوى؟", options: ["بوغاتي (Bugatti)", "فراري", "لامبورغيني", "مكلارين"], answer: 0 }
+                ]
+            },
+            anime: {
+                name: "أنمي ورسوم متحركة",
+                icon: "fa-dragon",
+                questions: [
+                    { q: "ما هو الأنمي الشهير الذي يبحث فيه البطل عن كنز 'الون بيس'؟", options: ["One Piece", "Naruto", "Bleach", "Dragon Ball"], answer: 0 },
+                    { q: "ما اسم النينجا صاحب الثعلب ذو التسعة ذيول؟", options: ["ناروتو أوزوماكي", "ساسكي أوتشيها", "كوبايشي", "إيتاشي"], answer: 0 },
+                    { q: "ما هي كرات التنين التي تحقق أي أمنية عند جمعها السبع؟", options: ["Dragon Balls", "Ninja Scrolls", "Death Note", "Senzu Beans"], answer: 0 },
+                    { q: "ما اسم المحقق الذكي الصغير في السلسلة اليابانية الشهيرة؟", options: ["المحقق كونان", "سينشي كودو", "كايتو كيد", "توغو موري"], answer: 0 },
+                    { q: "ما اسم دفتر الموت الذي يقتل أي شخص يكتب اسمه فيه؟", options: ["Death Note", "Attack on Titan", "Demon Slayer", "Tokyo Ghoul"], answer: 0 },
+                    { q: "في أنمي الهجوم على العمالقة، ما اسم البطل الساعي للإبادة؟", options: ["إيرين ييغر", "ليفاي آكرمان", "أرمين", "ميكاسا"], answer: 0 },
+                    { q: "ما اسم المدرب صاحب شخصية بيكاتشو في مسلسل بوكيمون؟", options: ["أش كيتشام", "بروك", "ميستي", "غاري"], answer: 0 },
+                    { q: "أنمي 'قاتل الشياطين' يُعرف بالإنجليزية باسم؟", options: ["Demon Slayer", "Jujutsu Kaisen", "My Hero Academia", "Hunter x Hunter"], answer: 0 },
+                    { q: "من هو استوديو الأفلام الياباني الشهير صاحب فيلم 'Spirited Away'؟", options: ["استوديو جيبلي (Ghibli)", "توي أنيميشن", "مابا", "مادهاوس"], answer: 0 },
+                    { q: "ما اسم بطل أنمي Hunter x Hunter الباحث عن والده؟", options: ["غون فريكس", "كيلوا", "كورابيكا", "يوريو"], answer: 0 }
+                ]
+            },
+            gaming: {
+                name: "العاب فيديو",
+                icon: "fa-gamepad",
+                questions: [
+                    { q: "ما اسم السباك الشهير والبطل الرئيسي في ألعاب Nintendo؟", options: ["ماريو (Mario)", "سونيك", "باكمان", "دونكي كونغ"], answer: 0 },
+                    { q: "ما هي اللعبة الأكثر مبيعاً في تاريخ ألعاب الفيديو حتى الآن؟", options: ["Minecraft", "GTA V", "Tetris", "PUBG"], answer: 0 },
+                    { q: "أي شركة تنتج منصة الألعاب الشهيرة 'PlayStation'؟", options: ["Sony", "Microsoft", "Nintendo", "Sega"], answer: 0 },
+                    { q: "ما اسم اللعبة القتالية الشهيرة التي تتميز بعبارة 'Finish Him'؟", options: ["Mortal Kombat", "Tekken", "Street Fighter", "Injustice"], answer: 0 },
+                    { q: "ما اسم اللعبة الشهيرة التي تجمع 100 لاعب في معركة البقاء للبناء والقتال؟", options: ["Fortnite", "Call of Duty", "Apex Legends", "Valorant"], answer: 0 },
+                    { q: "ما اسم جهاز ألعاب شركة مايكروسوفت المنافس لـ بلايستيشن؟", options: ["Xbox", "Wii", "GameCube", "Atari"], answer: 0 },
+                    { q: "ما اسم السلسلة التاريخية التي تدور حول قاتل مأجور وعقيدة المغتالين؟", options: ["Assassin's Creed", "God of War", "Uncharted", "Tomb Raider"], answer: 0 },
+                    { q: "من هو بطل لعبة 'God of War' الملقب بشبح سبارتا؟", options: ["كريتوس (Kratos)", "أتريوس", "زيوس", "ثور"], answer: 0 },
+                    { q: "لعبة تصويب المنظور الأول الشهيرة التابعة لشركة إلكترونيك آرتس؟", options: ["Battlefield", "Counter-Strike", "Overwatch", "Halo"], answer: 0 },
+                    { q: "ما اسم القنفذ الأزرق السريع في ألعاب شركة SEGA؟", options: ["سونيك (Sonic)", "تيلز", "ناكلز", "شادو"], answer: 0 }
+                ]
+            },
+            proverbs: {
+                name: "أمثال وحكم",
+                icon: "fa-lightbulb",
+                questions: [
+                    { q: "أكمل المثل: 'الصبر مفتاح ...'", options: ["الفرج", "النجاح", "الخير", "الرزق"], answer: 0 },
+                    { q: "أكمل المثل: 'من جد وجد ومن زرع ...'", options: ["حصد", "أكل", "نَجَح", "جنى"], answer: 0 },
+                    { q: "أكمل المثل: 'مصائب قوم عند قوم ...'", options: ["فوائد", "مصائب", "أفراح", "غنيمة"], answer: 0 },
+                    { q: "أكمل المثل: 'إذا كان الكلام من فضة فالسكوت من ...'", options: ["ذهب", "الماس", "حديد", "نحاس"], answer: 0 },
+                    { q: "أكمل المثل: 'الربيع يظهر من ...'", options: ["عتبة الدار", "أزهاره", "الشمس", "الحديقة"], answer: 0 },
+                    { q: "أكمل المثل: 'رب رمية من غير ...'", options: ["رامٍ", "قوس", "هدف", "سهم"], answer: 0 },
+                    { q: "أكمل المثل: 'عصفور في اليد خير من عشرة على ...'", options: ["الشجرة", "الأرض", "السقف", "الجدار"], answer: 0 },
+                    { q: "أكمل المثل: 'على أهلها تجني ...'", options: ["براقش", "خديجة", "سعاد", "فاطمة"], answer: 0 },
+                    { q: "أكمل المثل: 'لسانك حصانك إن صنته صانك وإن خنته ...'", options: ["هانك", "خانك", "باعك", "ضرك"], answer: 0 },
+                    { q: "أكمل المثل: 'لا تؤجل عمل اليوم إلى ...'", options: ["الغد", "الأسبوع القادم", "المساء", "العام المجهول"], answer: 0 }
+                ]
+            },
+            animals: {
+                name: "حيوانات وطبيعة",
+                icon: "fa-hippo",
+                questions: [
+                    { q: "ما هو أكبر كائن حي يعيش على كوكب الأرض حالياً؟", options: ["الحوت الأزرق", "الفيل الأفريقي", "قرش الميغالودون", "الزرافة"], answer: 0 },
+                    { q: "ما هو الحيوان البري الملقب بـ 'ملك الغابة'؟", options: ["الأسد", "النمر", "الفهد", "الدب"], answer: 0 },
+                    { q: "كم قلباً يمتلك الأخطبوط في جسمه؟", options: ["3 قلوب", "قلب واحد", "قلبان", "4 قلوب"], answer: 0 },
+                    { q: "ما هو الطائر الوحيد الذي يستطيع الطيران إلى الخلف؟", options: ["الطائر الطنان", "الصقر", "البومة", "النسر"], answer: 0 },
+                    { q: "ما هو الحيوان المعروف بلقب 'سفينة الصحراء'؟", options: ["الجمل", "الحصان", "الغزال", "الحمار الوحشي"], answer: 0 },
+                    { q: "ما أسرع كائن بري ركضاً في العالم؟", options: ["الفهد الصياد (الشيتا)", "الأسد", "الغزال", "الذئب"], answer: 0 },
+                    { q: "حيوان الكنغر المشهور بالقفز يتواجد بكثرة في دولة؟", options: ["أستراليا", "جنوب أفريقيا", "الهند", "كندا"], answer: 0 },
+                    { q: "ما هو الطائر الضخم الذي لا يستطيع الطيران وتُعتبر بيضته الأكبر؟", options: ["النعامة", "البطريق", "الطاووس", "النسر"], answer: 0 },
+                    { q: "ما الحيوان الدب الأبيض السمين الذي يعيش في القطب الشمالي؟", options: ["الدب القطبي", "دب الباندا", "الدب بني", "دب الكوالا"], answer: 0 },
+                    { q: "ما المخلوق المائي الذكي الصديق للإنسان؟", options: ["الدلفين", "قرش", "الحوت القاتل", "قنديل البحر"], answer: 0 }
+                ]
+            },
+            weather: {
+                name: "طقس ومناخ",
+                icon: "fa-cloud-showers-heavy",
+                questions: [
+                    { q: "ما الجهاز المستخدم لقياس درجة الحرارة؟", options: ["الترمومتر", "البارومتر", "الأنيومتر", "الهيدرومتر"], answer: 0 },
+                    { q: "ما الجهاز المستخدم لقياس الضغط الجوي؟", options: ["البارومتر", "الترمومتر", "المقياس المغناطيسي", "البوصلة"], answer: 0 },
+                    { q: "ما الظاهرة الناتجة عن انكسار ضوء الشمس عبر قطرات المطر؟", options: ["قوس قزح", "السراب", "الشفق القطبي", "الكسوف"], answer: 0 },
+                    { q: "ما اسم الإعصار الحلزوني القمعي الدوار؟", options: ["التورنادو (Tornado)", "التسونامي", "الزلزال", "الإنزلاق الأرضي"], answer: 0 },
+                    { q: "ما الجهاز الذي يُستخدم لقياس سرعة الرياح؟", options: ["الأنيمومتر", "الترمومتر", "الهيدرومتر", "البارومتر"], answer: 0 },
+                    { q: "ما الظاهرة التي تسبب ارتفاع درجة حرارة الأرض الكلية؟", options: ["احتباس حراري", "الانخفاض الجوي", "الجليد القطبي", "الأمطار الحمضية"], answer: 0 },
+                    { q: "ما هو الغاز الأكثر وجوداً في الهواء الجوي بنسبة 78%؟", options: ["النيتروجين", "الأكسجين", "ثاني أكسيد الكربون", "الأرجون"], answer: 0 },
+                    { q: "ماذا يسمى المطر المصحوب بثلج كريات ناعمة؟", options: ["البرد", "الندى", "الضباب", "الصقيع"], answer: 0 },
+                    { q: "ما اسم الهزة الأرضية المفاجئة في القشرة الأرضية؟", options: ["الزلزال", "البركان", "التسونامي", "الإعصار"], answer: 0 },
+                    { q: "ما هي ظاهرة الأضواء الملونة في سماء القطبين الشمالي والجنوبي؟", options: ["الشفق القطبي (الأورورا)", "قوس قزح", "الشهب", "النيازك"], answer: 0 }
+                ]
+            },
+            art: {
+                name: "فنون ولوحات",
+                icon: "fa-palette",
+                questions: [
+                    { q: "من رسم لوحة 'ليلة النجوم' (The Starry Night) الشهيرة؟", options: ["فينسنت فان غوخ", "بابلو بيكاسو", "سالفادور دالي", "كلود مونيه"], answer: 0 },
+                    { q: "ما المدرسة الفنية التي أسسها بيكاسو وتعتمد على الأشكال الهندسية؟", options: ["التكعيبية", "السريالية", "الانطباعية", "الواقعية"], answer: 0 },
+                    { q: "أين توجد لوحة 'المونا ليزا' في الوقت الحالي؟", options: ["متحف اللوفر - باريس", "متحف البرادو - مدريد", "متحف الفاتيكان", "متحف المتروبوليتان"], answer: 0 },
+                    { q: "من هو الفنان الذي رسم سقف كنيسة السيستين في الفاتيكان؟", options: ["مايكل أنجلو", "دا فينشي", "رافائيل", "تيتيان"], answer: 0 },
+                    { q: "ما الفن الذي يقوم على تجميع قطع صغيرة ملونة من الزجاج أو الحجر؟", options: ["الفسيفساء", "الاوريجامي", "النحت", "الأرابيسك"], answer: 0 },
+                    { q: "من هو الرسام الإسباني السريالي صاحب لوحة 'إصرار الذاكرة' والساعات المذابة؟", options: ["سالفادور دالي", "بيكاسو", "فريدا كاهلو", "غويا"], answer: 0 },
+                    { q: "ما هو الفن الياباني التقليدي لطي الورق وصنع أشكال مذهلة؟", options: ["الأوريغامي", "الانمي", "الكيمونو", "البونساي"], answer: 0 },
+                    { q: "ماذا يسمى العلم أو الفن المختص بتصميم المباني والمنشآت؟", options: ["الهندسة المعمارية", "الديكور", "النحت", "التصميم الجرافيكي"], answer: 0 },
+                    { q: "ما اسم اللوحة الجدارية الشهيرة للسيد المسيح وحوارييه للرسام دا فينشي؟", options: ["العشاء الأخير", "خلق آدم", "صرخة", "غرنيكا"], answer: 0 },
+                    { q: "ما اسم تمثال داوود الرخامي الشهير ومن نحته؟", options: ["مايكل أنجلو", "دوناتيلو", "رودان", "برنيني"], answer: 0 }
+                ]
+            },
+            capitals: {
+                name: "عواصم العالم",
+                icon: "fa-city",
+                questions: [
+                    { q: "ما هي عاصمة جمهورية مصر العربية؟", options: ["القاهرة", "الإسكندرية", "الجيزة", "الأقصر"], answer: 0 },
+                    { q: "ما هي عاصمة المملكة العربية السعودية؟", options: ["الرياض", "جدة", "مكة المكرمة", "الدمام"], answer: 0 },
+                    { q: "ما هي عاصمة فرنسا؟", options: ["باريس", "مارسيليا", "ليون", "نيس"], answer: 0 },
+                    { q: "ما هي عاصمة المملكة المتحدة (إنجلترا)؟", options: ["لندن", "مانشستر", "ليفربول", "أدنبرة"], answer: 0 },
+                    { q: "ما هي عاصمة اليابان؟", options: ["طوكيو", "كيوتو", "أوساكا", "هيروشيما"], answer: 0 },
+                    { q: "ما هي عاصمة دولة الإمارات العربية المتحدة؟", options: ["أبوظبي", "دبي", "الشارقة", "عجمان"], answer: 0 },
+                    { q: "ما هي عاصمة تركيا الحالية؟", options: ["أنقرة", "إسطنبول", "إزمير", "بورصة"], answer: 0 },
+                    { q: "ما هي عاصمة إيطاليا التاريخية؟", options: ["روما", "ميلانو", "فينيسيا", "نابولي"], answer: 0 },
+                    { q: "ما هي عاصمة الولايات المتحدة الأمريكية؟", options: ["واشنطن دي سي", "نيويورك", "لوس أنجلوس", "شيكاغو"], answer: 0 },
+                    { q: "ما هي عاصمة روسيا؟", options: ["موسكو", "سان بطرسبرغ", "سوتشي", "كازان"], answer: 0 }
+                ]
+            },
+            inventions: {
+                name: "اختراعات واكتشافات",
+                icon: "fa-gears",
+                questions: [
+                    { q: "من اكتشف مادة البنسلين كأول مضاد حيوي في التاريخ؟", options: ["ألكسندر فليمنج", "لويس باستور", "روبرت كوخ", "إدوارد جينر"], answer: 0 },
+                    { q: "من اخترع الهاتف الأول في التاريخ؟", options: ["ألكسندر غراهام بيل", "إديسون", "تسلا", "ماركوني"], answer: 0 },
+                    { q: "من اخترع الطباعة باستخدام الحروف المتحركة في أوروبا؟", options: ["يوهان غوتنبرغ", "ليوناردو دا فينشي", "نيوتن", "غاليلو"], answer: 0 },
+                    { q: "من اخترع الراديو والاتصال اللاسلكي؟", options: ["غولييلمو ماركوني", "تسلا", "بيل", "فاراداي"], answer: 0 },
+                    { q: "من هو مخترع المصباح الكهربائي التجاري الناجح؟", options: ["توماس إديسون", "نيكولا تسلا", "فرانكلين", "فاراداي"], answer: 0 },
+                    { q: "من هما الأخوان اللذان قاما بأول طيران ناجح بطائرة ذات محرك؟", options: ["الأخوان رايت", "الأخوان لوميير", "الأخوان غريم", "الأخوان كوري"], answer: 0 },
+                    { q: "من مخترع محرك الديزل؟", options: ["رودولف ديزل", "هنري فورد", "كارل بنز", "نيكولاس أوتو"], answer: 0 },
+                    { q: "من اكتشف أشعة إكس (X-Ray) الطبية؟", options: ["فيلهلم رونتغن", "ماري كوري", "أنطوان بر Becquerel", "أينشتاين"], answer: 0 },
+                    { q: "من مخترع الديناميت والذي سميت باسمه الجائزة العالمية؟", options: ["ألفريد نوبل", "مندليف", "نيلز بور", "دالتون"], answer: 0 },
+                    { q: "من طوّر أول لقاح ناجح لشلل الأطفال؟", options: ["جوناس صالك", "ألبرت صابين", "باستور", "فليمنج"], answer: 0 }
+                ]
+            },
+            health: {
+                name: "صحة وجسم الإنسان",
+                icon: "fa-stethoscope",
+                questions: [
+                    { q: "ما هو المعدل الطبيعي لضغط الدم لدى الإنسان السليم؟", options: ["120/80", "140/90", "100/60", "150/100"], answer: 0 },
+                    { q: "ما هو الفيتامين الذي يتم تصنيعه في الجلد عند التعرض لأشعة الشمس؟", options: ["فيتامين D", "فيتامين C", "فيتامين A", "فيتامين B12"], answer: 0 },
+                    { q: "ما هو فصيلة الدم التي تعتبر 'معطي عام' لكافة الفصائل؟", options: ["O سالب (O-)", "AB موجب", "A موجب", "B سالب"], answer: 0 },
+                    { q: "كم عدد العظام في جسم الإنسان البالغ؟", options: ["206 عظمة", "300 عظمة", "180 عظمة", "250 عظمة"], answer: 0 },
+                    { q: "ما هو أكبر عضو في جسم الإنسان من حيث المساحة والوزن؟", options: ["الجلد", "الكبد", "الرئة", "الدماغ"], answer: 0 },
+                    { q: "ما العضو المسؤول عن تصفية الدم وإخراج السموم والبول؟", options: ["الكليتان", "الكبد", "المرارة", "الطحال"], answer: 0 },
+                    { q: "ما اسم السكر الأساسي الذي يدور في الدم ويزود الخلايا بالطاقة؟", options: ["الجلوكوز", "الفركتوز", "السكروز", "اللاكتوز"], answer: 0 },
+                    { q: "كم عدد حجرات قلب الإنسان؟", options: ["4 حجرات", "3 حجرات", "حجرتان", "5 حجرات"], answer: 0 },
+                    { q: "ما العضو الذي يفرز هرمون الأنسولين لتنظيم السكر؟", options: ["البنكرياس", "الغدة الدرقية", "الكبد", "الغدة النخامية"], answer: 0 },
+                    { q: "ما هي أطول وأقوى عظمة في جسم الإنسان؟", options: ["عظمة الفخذ", "عظمة الساق", "عظمة العضد", "العمود الفقري"], answer: 0 }
+                ]
+            },
+            music: {
+                name: "موسيقار وآلات",
+                icon: "fa-music",
+                questions: [
+                    { q: "ما هي الآلة الموسيقية الوترية الملقبة بـ 'أم الآلات الشرقية'؟", options: ["العود", "الكانون", "الكمان", "الناي"], answer: 0 },
+                    { q: "كم عدد مفاتيح البيانو القياسي الكامل؟", options: ["88 مفتاحاً", "64 مفتاحاً", "100 مفتاح", "72 مفتاحاً"], answer: 0 },
+                    { q: "من هو الموسيقار الألماني الأصم صاحب السيمفونية التاسعة؟", options: ["بيتهوفن", "موتسارت", "باخ", "تشايكوفسكي"], answer: 0 },
+                    { q: "ما هي الآلة الموسيقية النفخية المصنوعة غالباً من النحاس؟", options: ["الترومبيت", "الكمان", "الجيتار", "الدربكة"], answer: 0 },
+                    { q: "من هو الموسيقار النمساوي الموهوب عبقري الموسيقى الكلاسيكية منذ طفولته؟", options: ["موتسارت", "بيتهوفن", "شوبان", "فاجنر"], answer: 0 },
+                    { q: "ما هي السلسلة المكونة من سبع نغمات: دو، ري، مي، فا، صول، لا، سي؟", options: ["السلم الموسيقي", "الإيقاع", "الأوركسترا", "المقام"], answer: 0 },
+                    { q: "آلة موسيقية وترية ذات شكل كمثري يشتهر عزفها في الإسبانية والروك؟", options: ["الجيتار", "الكمان", "الفيولا", "الكونتراباس"], answer: 0 },
+                    { q: "من هي سيدة الغناء العربي الملقبة بـ 'كوكب الشرق'؟", options: ["أم كلثوم", "فيروز", "أسمهان", "وردة الجزائرية"], answer: 0 },
+                    { q: "ما هي الآلة الموسيقية الخشبية النفخية الحزينة ذات الثقوب؟", options: ["الناي", "الأورج", "الأكورديون", "الدف"], answer: 0 },
+                    { q: "من هو الموسيقار المصري الملقب بـ 'موسيقار الأجيال'؟", options: ["محمد عبد الوهاب", "بليغ حمدي", "سيد درويش", "فريد الأطرش"], answer: 0 }
+                ]
+            },
+            myths: {
+                name: "أساطير وحكايات",
+                icon: "fa-wand-magic-sparkles",
+                questions: [
+                    { q: "ما هو الطائر الأسطوري الخيالي الذي ينبعث من رماده مجدداً؟", options: ["العنقاء (الفينكس)", "الرخ", "الغراب", "الهدهد האسطوري"], answer: 0 },
+                    { q: "في الإغريق، من هو إله البحر والحيوانات البحرية حامل شوكة الصيد؟", options: ["بوسيدون", "زيوس", "هاديس", "أبوللو"], answer: 0 },
+                    { q: "ما اسم المخلوق الأسطوري بجسد حصان وقرن واحد في جبهته؟", options: ["أحادى القرن (Unicorn)", "البيغاسوس", "الجرينش", "السنتور"], answer: 0 },
+                    { q: "في الأساطير الإغريقية، من يتحول شعرها لأفاعي وتحول من ينظر إليها حجراً؟", options: ["ميدوسا", "هيرا", "أثينا", "أفروديت"], answer: 0 },
+                    { q: "ما اسم الحصان المجنح الأبيض في الأسطورة الإغريقية؟", options: ["بيغاسوس", "سنتور", "مينوتور", "غريفين"], answer: 0 },
+                    { q: "ما اسم الوحش الأسطوري بجسد ثور ورأس إنسان في المتاهة؟", options: ["المينوتور", "السفينكس", "الهيدرا", "السيربيروس"], answer: 0 },
+                    { q: "ما اسم الكلب ذو الرؤوس الثلاثة الذي يحرس العالم السفلي بالأسطورة؟", options: ["سيربيروس", "هيدرا", "كراكن", "باك"], answer: 0 },
+                    { q: "في الأسطورة المصرية القديمة، من هو إله الموت والتحنيط برأس أنوبيس؟", options: ["أنوبيس (رأس ابن آوى)", "أوزوريس", "حورس", "رع"], answer: 0 },
+                    { q: "ما هو الوحش البحري الضخم في الأساطير السكندنافية الذي يبتلع السفن؟", options: ["الكراكن (Kraken)", "الهيدرا", "الترول", "الغول"], answer: 0 },
+                    { q: "ما اسم الحية الأسطورية ذات الرؤوس المتعددة التي تنمو عند قطعها؟", options: ["الهيدرا (Hydra)", "الميدوسا", "الأفعى الكبرى", "الكوبرا الملكية"], answer: 0 }
+                ]
+            },
+            space: {
+                name: "فضاء ومجرات",
+                icon: "fa-user-astronaut",
+                questions: [
+                    { q: "ما اسم مجرتنا التي تقع فيها الأرض وكواكب المجموعة الشمسية؟", options: ["درب التبانة", "أندروميدا", "مجرة الصومعة", "مثلث الفضاء"], answer: 0 },
+                    { q: "ما هو أقرب نجم كروي ضخم إلى الأرض؟", options: ["الشمس", "الشعرى اليمانية", "النجم القطبي", "رجل القنطور"], answer: 0 },
+                    { q: "ماذا يسمى الثقب ذو الجاذبية المطلقة التي لا يستطيع الضوء الهرب منها؟", options: ["الثقب الأسود", "القزم الأبيض", "النجم النيوتروني", "المستعر الأعظم"], answer: 0 },
+                    { q: "ما اسم أول إنسان وطأت قدمه سطح القمر عام 1969؟", options: ["نيل أرمسترونغ", "باز ألدين", "يوري جاجارين", "جون جلين"], answer: 0 },
+                    { q: "من هو أول رائد فضاء صعد إلى الفضاء الخارجي في التاريخ؟", options: ["يوري جاجارين", "نيل أرمسترونغ", "سلطان بن سلمان", "جون جلين"], answer: 0 },
+                    { q: "ما هو الكوكب المعروف بحلقاته الجليدية والصخرية المذهلة؟", options: ["زحل", "المشتري", "أورانوس", "نبتون"], answer: 0 },
+                    { q: "ما اسم التلسكوب الفضائي الأحدث المتطور الذي أطلقته ناسا خلفاً لهابل؟", options: ["جيمس ويب (James Webb)", "هابل", "شاندرا", "سبيتزر"], answer: 0 },
+                    { q: "ما هو الاسم العلمي لظاهرة انفجار النجم المظلم الضخم في نهاية حياته؟", options: ["السوبرنوفا (المستعر الأعظم)", "الاندماج النووي", "السديم", "الشهاب"], answer: 0 },
+                    { q: "كم رائد فضاء عربي سعودي صعد إلى الفضاء عام 1985؟", options: ["الأمير سلطان بن سلمان", "علي القرني", "ريانة برناوي", "هزاع المنصوري"], answer: 0 },
+                    { q: "ما هو الكوكب الأبرد درجة حرارة في نظامنا الشمسي؟", options: ["أورانوس", "نبتون", "بلوتو", "زحل"], answer: 0 }
+                ]
+            },
+            chemistry: {
+                name: "كيمياء وعناصر",
+                icon: "fa-vial",
+                questions: [
+                    { q: "ما هو الرمز الكيميائي للماء النقي؟", options: ["H2O", "CO2", "NaCl", "O2"], answer: 0 },
+                    { q: "ما هو الرمز الكيميائي لعنصر الذهب الصافي؟", options: ["Au", "Ag", "Fe", "Cu"], answer: 0 },
+                    { q: "ما هو العنصر الأبسط والأخف وزناً في جدول العناصر الكيميائية؟", options: ["الهيدروجين", "الهيليوم", "الليثيوم", "الكربون"], answer: 0 },
+                    { q: "ما هو الاسم الشائع لمركب كبريتيد الصوديوم / كلوريد الصوديوم؟", options: ["ملح الطعام", "السكر", "البيكنج صودا", "الشبة"], answer: 0 },
+                    { q: "ما هو الغاز المسبب لظاهرة الفوران في المشروبات الغازية؟", options: ["ثاني أكسيد الكربون", "الأكسجين", "النيتروجين", "الهيدروجين"], answer: 0 },
+                    { q: "ما هو الرمز الكيميائي لعنصر الحديد؟", options: ["Fe", "Ir", "F", "Pb"], answer: 0 },
+                    { q: "ما هما المادتان اللتان ينتج عن تفاعلهما ملح وماء؟", options: ["حمض وقاعدة", "معدن وماء", "غاز وزيت", "ملح وسكر"], answer: 0 },
+                    { q: "ما هو العنصر السائل الوحيد من المعالم المعدنية عند درجة حرارة الغرفة؟", options: ["الزئبق", "البروم", "الحديد", "الرصاص"], answer: 0 },
+                    { q: "ما هو الرمز الكيميائي لعنصر الفضة؟", options: ["Ag", "Au", "Si", "Pt"], answer: 0 },
+                    { q: "ما المادة الصلبة الفحمية التي تتكون أساساً من الكربون وهي أصل الألماس؟", options: ["الكربون / الجرافيت", "الكبريت", "الفوسفور", "السليكون"], answer: 0 }
+                ]
+            },
+            math: {
+                name: "رياضيات وأرقام",
+                icon: "fa-calculator",
+                questions: [
+                    { q: "ما هي قيمة الثابت الرياضي 'باي' (π) بالتقريب؟", options: ["3.14", "2.71", "1.61", "4.12"], answer: 0 },
+                    { q: "ما هو حاصل ضرب الرقم 7 في الرقم 8؟", options: ["56", "54", "63", "48"], answer: 0 },
+                    { q: "ما هو الجذر التربيعي للعدد 144؟", options: ["12", "14", "16", "10"], answer: 0 },
+                    { q: "ما هو العدد الأولي الوحيد الذي يُعتبر عدداً زوجياً؟", options: ["2", "4", "0", "6"], answer: 0 },
+                    { q: "كم مجموع زوايا المثلث الداخلية الإجمالية؟", options: ["180 درجة", "360 درجة", "90 درجة", "270 درجة"], answer: 0 },
+                    { q: "ما اسم النظرية الرياضية الشهيرة لحساب أضلاع المثلث القائم؟", options: ["نظرية فيثاغورس", "نظرية إقليدس", "نظرية تاليس", "نظرية نيوتن"], answer: 0 },
+                    { q: "ما هو حاصل جمع 15 + 27؟", options: ["42", "40", "45", "38"], answer: 0 },
+                    { q: "كم يساوي 2 أس 5 (2^5)؟", options: ["32", "16", "64", "25"], answer: 0 },
+                    { q: "ما اسم العلم الرياضي المكون من رموز س وص الذي أسسه الخوارزمي؟", options: ["علم الجبر", "الهندسة", "التفاضل والتكامل", "الإحصاء"], answer: 0 },
+                    { q: "كم ضلعاً في الشكل الهندسي الثماني؟", options: ["8 أضلاع", "6 أضلاع", "10 أضلاع", "7 أضلاع"], answer: 0 }
+                ]
+            },
+            environment: {
+                name: "بيئة ونباتات",
+                icon: "fa-seedling",
+                questions: [
+                    { q: "ما هي المادة الخضراء في النباتات المسؤولة عن امتصاص ضوء الشمس؟", options: ["الكلوروفيل", "الكاروتين", "السليلوز", "البكتين"], answer: 0 },
+                    { q: "ما اسم العملية التي يصنع بها النبات غذاءه بإطلاق الأكسجين؟", options: ["البناء الضوئي", "التنفس الخلوي", "النتح", "التبخر"], answer: 0 },
+                    { q: "ما هي أكبر غابة مطرية استوائية في العالم؟", options: ["غابات الأمازون", "غابات الكونغو", "غابات التايغا", "غابات الألب"], answer: 0 },
+                    { q: "أي نبات يُعرف بقدرته العالية على تخزين الماء والصمود في الصحراء؟", options: ["الصبار", "الخيزران", "السرخس", "الصنوبر"], answer: 0 },
+                    { q: "أسرع النباتات نمواً في العالم حيث ينمو عدة سنتيمترات يومياً؟", options: ["الخيزران (البامبو)", "النخيل", "الزيتون", "الأرز"], answer: 0 },
+                    { q: "ما الشجرة الأطول والأقدم عمراً في العالم؟", options: ["السقويا العملاقة (الأرز الأحمر)", "النخلة", "البلوط", "الصفصاف"], answer: 0 },
+                    { q: "ما الجزء في النبات المسؤول عن امتصاص الماء والأنادين من التربة؟", options: ["الجذور", "الأوراق", "الساق", "الزهرة"], answer: 0 },
+                    { q: "أي غاز يمتصه النبات من الهواء أثناء عملية البناء الضوئي؟", options: ["ثاني أكسيد الكربون", "الأكسجين", "النيتروجين", "الهيليوم"], answer: 0 },
+                    { q: "ما اسم العملية التي يتم فيها نقل الحبوب المخصبة بين الزهور؟", options: ["التلقيح", "الإنبات", "التبرعم", "النمو"], answer: 0 },
+                    { q: "ما هي الزهرة الوطنية الشهيرة في اليابان والتي تتفتح في الربيع؟", options: ["الساكورا (أزهار الكرز)", "اللوتس", "الزنبق", "النرجس"], answer: 0 }
+                ]
+            },
+            energy: {
+                name: "فيزياء وطاقة",
+                icon: "fa-bolt",
+                questions: [
+                    { q: "ما هي وحدة قياس القوة في نظام الوحدات الدولي؟", options: ["النيوتن", "الجول", "الوات", "الباسكال"], answer: 0 },
+                    { q: "ما هي وحدة قياس الطاقة والشغل؟", options: ["الجول", "النيوتن", "الفولت", "الأمبير"], answer: 0 },
+                    { q: "ما هي الجسيمات السالبة التي تدور حول نوات الذرة؟", options: ["الإلكترونات", "البروتونات", "النيوترونات", "الكواركات"], answer: 0 },
+                    { q: "ما القانون الشهير الذي ينص على أن 'الطاقة لا تفنى ولا تستحدث'؟", options: ["قانون حفظ الطاقة", "قانون الجاذبية", "قانون أوم", "قانون نيوتن الثاني"], answer: 0 },
+                    { q: "ما هي وحدة قياس القدرة الكهربائية؟", options: ["الوات (Watt)", "الفولت", "الأمبير", "الأوم"], answer: 0 },
+                    { q: "ما الجهاز الذى يحول الطاقة الميكانيكية إلى طاقة كهربائية؟", options: ["المولد الكهربائي (الديسامو)", "المحرك الكهربائي", "المحول", "المكثف"], answer: 0 },
+                    { q: "ما اسم الطاقة الناتجة عن حركة الجسم؟", options: ["الطاقة الحركية", "طاقة الوضع", "الطاقة الحرارية", "الطاقة الكيميائية"], answer: 0 },
+                    { q: "ما هي حالة المادة الرابعة بعد الصلبة والسائلة والغازية؟", options: ["البلازما", "التكثيف", "التسامي", "المرونة"], answer: 0 },
+                    { q: "ما هو العالم المكتشف للتيار الكهربائي المتردد؟", options: ["نيكولا تسلا", "توماس إديسون", "مايكل فاراداي", "أوم"], answer: 0 },
+                    { q: "ما المادة التي لا تسمح بمرور الشحنات الكهربائية من خلالها؟", options: ["العازل", "الموصل", "شبه الموصل", "المكثف"], answer: 0 }
+                ]
+            },
+            psychology: {
+                name: "علم النفس",
+                icon: "fa-brain",
+                questions: [
+                    { q: "من هو العالم النمساوي المؤسس لمدرسة التحليل النفسي؟", options: ["سيغموند فرويد", "كارل يونغ", "إيفان بافلوف", "بياجيه"], answer: 0 },
+                    { q: "ما هو المصطلح النفسي الذي يعني الخوف الشديد غير البرير من شيء معين؟", options: ["الفوبيا (Phobia)", "الهستيريا", "الاكتئاب", "الوسواس"], answer: 0 },
+                    { q: "ما اسم التجربة الشهيرة للكلب واللعاب المشروطة بالرسن؟", options: ["تجربة بافلوف الشرطية", "تجربة سكينر", "تجربة فرويد", "تجربة ميلغرام"], answer: 0 },
+                    { q: "ماذا يطلق على اضطراب تقلب المزاج بين الهوس والإحباط الشديد؟", options: ["اضطراب ثنائي القطب", "الفصام", "القلق العام", "الرهاب الاجتماعي"], answer: 0 },
+                    { q: "ما هو اختبار الشخصية الشهير المكون من 4 أشكال حروف مثل INTJ؟", options: ["اختبار MBTI", "اختبار رورشاخ", "اختبار IQ", "اختبار انياغرام"], answer: 0 },
+                    { q: "ما هو مصطلح 'IQ' باللغة العربية؟", options: ["معامل الذكاء", "مستوى التوتر", "الذاكرة طويلة المدى", "الاستجابة العاطفية"], answer: 0 },
+                    { q: "ما اسم التسلسل الهرمي الشهير للاحتياجات الإنسانية (الأمان، التقدير، الذات)؟", options: ["هرم ماسلو", "هرم فرويد", "سلم يونغ", "مصفوفة بافلوف"], answer: 0 },
+                    { q: "ما اسم الاستجابة النفسية والجسدية الفطرية عند الخطر: Fight or ...؟", options: ["Flight (الهروب)", "Freeze (التجمد)", "Sleep (النوم)", "Hide (الختباء)"], answer: 0 },
+                    { q: "ما هو العقل اللواعي المخزن للأفكار والذكريات التلقائية؟", options: ["اللاوعي (الباطن)", "العقل الواعي", "الذاكرة القصيرة", "الإدراك الحسي"], answer: 0 },
+                    { q: "ما هو الاضطراب النفسي الناتج عن التعرض لحادث صدمة كبرى؟", options: ["PTSD (صدمة ما بعد التروما)", "الوسواس القهري", "الارتباك", "الارق"], answer: 0 }
+                ]
+            },
+            general: {
+                name: "معلومات عامة",
+                icon: "fa-icons",
+                questions: [
+                    { q: "ما هي الدولة الوحيدة التي ليس علمها مستطيل أو مربع؟", options: ["نيبال", "الفاتيكان", "سويسرا", "موناكو"], answer: 0 },
+                    { q: "ما هي البصمة الفريدة التي لا تتشابه بين شخصين مطلقاً سوى الأصابع؟", options: ["بصمة العين واللسان", "بصمة الأذن", "بصمة الشفاه", "جميع ما ذكر"], answer: 0 },
+                    { q: "أي ثمرة تعتبر فاكهة علمياً وليست خضاراً؟", options: ["الطماطم", "الخيار", "البطاطس", "الجزر"], answer: 0 },
+                    { q: "كم عدد القارات المعتمدة على كوكب الأرض؟", options: ["7 قارات", "6 قارات", "5 قارات", "8 قارات"], answer: 0 },
+                    { q: "ما هو السائل الذي لا يتجمد إطلاقاً حتى في أشد الدرجات برودة؟", options: ["الزئبق", "الماء المالح", "الزيت", "الكحول النقي"], answer: 0 },
+                    { q: "ما هو أقرب كوكب بحجمه وشكله إلى كوكب الأرض؟", options: ["كوكب الزهرة", "كوكب المريخ", "كوكب عطارد", "كوكب نبتون"], answer: 0 },
+                    { q: "ما هي اللغة الرسمية الأثر تحدثاً في العالم كـ لغة أم؟", options: ["الصينية (الماندرين)", "الإسبانية", "الإنجليزية", "الهندية"], answer: 0 },
+                    { q: "كم عدد ألوان قوس قزح الرئيسية؟", options: ["7 ألوان", "6 ألوان", "8 ألوان", "5 ألوان"], answer: 0 },
+                    { q: "ما اسم المضيق البحري الفاصل بين المغرب وإسبانيا؟", options: ["مضيق جبل طارق", "مضيق باب المندب", "مضيق هرمز", "مضيق البسفور"], answer: 0 },
+                    { q: "ما هي أسرع طريقة لانتشار المعلومات والأخبار في العصر الحديث؟", options: ["شبكات التواصل الاجتماعي / الإنترنت", "التلفاز", "الصحف الورقية", "الراديو"], answer: 0 }
+                ]
+            }
+        };
+
+        /* ==========================================================================
+           2. SOUND EFFECTS SYNTHESIZER (Web Audio API - Pure Code & Reliable)
+           ========================================================================== */
+        class SoundEffects {
+            constructor() {
+                this.ctx = null;
+                this.enabled = true;
+            }
+
+            init() {
+                if (!this.ctx) {
+                    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                    if (AudioCtx) this.ctx = new AudioCtx();
+                }
+                if (this.ctx && this.ctx.state === 'suspended') {
+                    this.ctx.resume();
+                }
+            }
+
+            playCorrect() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(523.25, this.ctx.currentTime); // C5
+                osc.frequency.exponentialRampToValueAtTime(659.25, this.ctx.currentTime + 0.15); // E5
+                
+                gain.gain.setValueAtTime(0.2, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+
+            playWrong() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(180, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(110, this.ctx.currentTime + 0.25);
+
+                gain.gain.setValueAtTime(0.3, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.3);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.3);
+            }
+
+            playPass() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(400, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(250, this.ctx.currentTime + 0.2);
+
+                gain.gain.setValueAtTime(0.25, this.ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + 0.2);
+
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.2);
+            }
+
+            playWin() {
+                if (!this.enabled) return;
+                this.init();
+                if (!this.ctx) return;
+
+                const notes = [440, 554.37, 659.25, 880];
+                notes.forEach((freq, index) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, this.ctx.currentTime + index * 0.12);
+                    
+                    gain.gain.setValueAtTime(0.2, this.ctx.currentTime + index * 0.12);
+                    gain.gain.exponentialRampToValueAtTime(0.01, this.ctx.currentTime + index * 0.12 + 0.3);
+
+                    osc.connect(gain);
+                    gain.connect(this.ctx.destination);
+                    osc.start(this.ctx.currentTime + index * 0.12);
+                    osc.stop(this.ctx.currentTime + index * 0.12 + 0.3);
+                });
+            }
+        }
+
+        const sounds = new SoundEffects();
+
+        /* ==========================================================================
+           3. GAME STATE MANAGMENT
+           ========================================================================== */
+        let gameState = {
+            p1Name: "اللاعب 1",
+            p2Name: "اللاعب 2",
+            initialTime: 45.0,
+            p1Time: 45.0,
+            p2Time: 45.0,
+            activePlayer: 1, // 1 or 2
+            selectedCategoryKey: "cinema",
+            questionsList: [],
+            currentQuestionIndex: 0,
+            timerInterval: null,
+            isPlaying: false
+        };
+
+        /* ==========================================================================
+           4. DOM ELEMENTS REFERENCES
+           ========================================================================== */
+        const setupScreen = document.getElementById('setupScreen');
+        const gameScreen = document.getElementById('gameScreen');
+        const winnerScreen = document.getElementById('winnerScreen');
+        const categoriesGrid = document.getElementById('categoriesGrid');
+        const categorySearchInput = document.getElementById('categorySearchInput');
+
+        const player1Input = document.getElementById('player1Input');
+        const player2Input = document.getElementById('player2Input');
+        const timeSelect = document.getElementById('timeSelect');
+        const startGameBtn = document.getElementById('startGameBtn');
+        const randomCategoryBtn = document.getElementById('randomCategoryBtn');
+        const restartBtn = document.getElementById('restartBtn');
+        const playAgainBtn = document.getElementById('playAgainBtn');
+        const soundToggleBtn = document.getElementById('soundToggleBtn');
+        const soundIcon = document.getElementById('soundIcon');
+
+        const p1NameDisp = document.getElementById('p1Name');
+        const p2NameDisp = document.getElementById('p2Name');
+        const p1TimerDisp = document.getElementById('p1Timer');
+        const p2TimerDisp = document.getElementById('p2Timer');
+        const p1ClockCard = document.getElementById('p1ClockCard');
+        const p2ClockCard = document.getElementById('p2ClockCard');
+
+        const currentCategoryBadge = document.getElementById('currentCategoryBadge');
+        const currentCategoryText = document.getElementById('currentCategoryText');
+        const currentCategoryIcon = document.getElementById('currentCategoryIcon');
+        const turnIndicator = document.getElementById('turnIndicator');
+        const activePlayerName = document.getElementById('activePlayerName');
+        
+        const questionText = document.getElementById('questionText');
+        const questionImage = document.getElementById('questionImage');
+        const imageContainer = document.getElementById('imageContainer');
+        const answersArea = document.getElementById('answersArea');
+        const passBtn = document.getElementById('passBtn');
+        const feedbackToast = document.getElementById('feedbackToast');
+        const questionBox = document.getElementById('questionBox');
+
+        const winnerName = document.getElementById('winnerName');
+        const winnerTime = document.getElementById('winnerTime');
+
+        /* ==========================================================================
+           5. APP INITIALIZATION & CATEGORIES RENDERING
+           ========================================================================== */
+        function initApp() {
+            renderCategories();
+            setupEventListeners();
+        }
+
+        function renderCategories(filterQuery = "") {
+            categoriesGrid.innerHTML = '';
+            const keys = Object.keys(QUESTION_DATABASE);
+            let matchCount = 0;
+
+            keys.forEach((key) => {
+                const cat = QUESTION_DATABASE[key];
+                
+                // Search Filter Logic
+                if (filterQuery && !cat.name.includes(filterQuery)) {
+                    return;
+                }
+                matchCount++;
+
+                const isSelected = key === gameState.selectedCategoryKey;
+
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.className = `cat-btn p-3 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95 ${
+                    isSelected 
+                    ? 'border-indigo-500 bg-indigo-500/25 text-white shadow-lg shadow-indigo-500/30' 
+                    : 'border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200 hover:bg-slate-800/50'
+                }`;
+                btn.dataset.key = key;
+                btn.innerHTML = `
+                    <i class="fa-solid ${cat.icon} text-lg text-cyan-400 mb-0.5"></i>
+                    <span class="truncate w-full text-center font-bold text-[11px] sm:text-xs">${cat.name}</span>
+                `;
+                btn.onclick = () => selectCategory(key, btn);
+                categoriesGrid.appendChild(btn);
+            });
+
+            if (matchCount === 0) {
+                categoriesGrid.innerHTML = `<div class="col-span-full py-6 text-center text-xs text-slate-500">لا يوجد تصنيف يطابق البحث الحالي</div>`;
+            }
+        }
+
+        function selectCategory(key, element) {
+            gameState.selectedCategoryKey = key;
+            const allBtns = categoriesGrid.querySelectorAll('.cat-btn');
+            allBtns.forEach(btn => {
+                btn.className = 'cat-btn p-3 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95 border-slate-800 bg-slate-900/60 text-slate-400 hover:border-slate-700 hover:text-slate-200 hover:bg-slate-800/50';
+            });
+
+            if (element) {
+                element.className = 'cat-btn p-3 rounded-xl border text-xs font-bold flex flex-col items-center justify-center gap-1.5 transition transform active:scale-95 border-indigo-500 bg-indigo-500/25 text-white shadow-lg shadow-indigo-500/30';
+            }
+        }
+
+        function selectRandomCategory() {
+            const keys = Object.keys(QUESTION_DATABASE);
+            const randomKey = keys[Math.floor(Math.random() * keys.length)];
+            gameState.selectedCategoryKey = randomKey;
+            categorySearchInput.value = "";
+            renderCategories();
+        }
+
+        function setupEventListeners() {
+            startGameBtn.addEventListener('click', startGame);
+            randomCategoryBtn.addEventListener('click', selectRandomCategory);
+            restartBtn.addEventListener('click', resetToSetup);
+            playAgainBtn.addEventListener('click', resetToSetup);
+            passBtn.addEventListener('click', handlePass);
+            
+            categorySearchInput.addEventListener('input', (e) => {
+                renderCategories(e.target.value.trim());
+            });
+
+            soundToggleBtn.addEventListener('click', () => {
+                sounds.enabled = !sounds.enabled;
+                if (sounds.enabled) {
+                    soundIcon.className = "fa-solid fa-volume-high text-cyan-400";
+                } else {
+                    soundIcon.className = "fa-solid fa-volume-xmark text-slate-500";
+                }
+            });
+        }
+
+        /* ==========================================================================
+           6. GAME CORE CONTROLLER & TIMER SYSTEM
+           ========================================================================== */
+        function startGame() {
+            sounds.init();
+            
+            gameState.p1Name = player1Input.value.trim() || "اللاعب 1";
+            gameState.p2Name = player2Input.value.trim() || "اللاعب 2";
+            gameState.initialTime = parseFloat(timeSelect.value) || 45.0;
+            
+            gameState.p1Time = gameState.initialTime;
+            gameState.p2Time = gameState.initialTime;
+            gameState.activePlayer = 1;
+            gameState.isPlaying = true;
+            
+            const rawQuestions = QUESTION_DATABASE[gameState.selectedCategoryKey].questions;
+            gameState.questionsList = shuffleArray([...rawQuestions]);
+            gameState.currentQuestionIndex = 0;
+
+            p1NameDisp.textContent = gameState.p1Name;
+            p2NameDisp.textContent = gameState.p2Name;
+            
+            const selectedCatObj = QUESTION_DATABASE[gameState.selectedCategoryKey];
+            currentCategoryText.textContent = selectedCatObj.name;
+            currentCategoryIcon.className = `fa-solid ${selectedCatObj.icon}`;
+
+            setupScreen.classList.add('hidden');
+            winnerScreen.classList.add('hidden');
+            gameScreen.classList.remove('hidden');
+            gameScreen.classList.add('flex');
+            restartBtn.classList.remove('hidden');
+            restartBtn.classList.add('flex');
+
+            updateClocksDisplay();
+            updateTurnUI();
+            displayCurrentQuestion();
+
+            startTimer();
+        }
+
+        function startTimer() {
+            clearInterval(gameState.timerInterval);
+            gameState.timerInterval = setInterval(() => {
+                if (!gameState.isPlaying) return;
+
+                if (gameState.activePlayer === 1) {
+                    gameState.p1Time -= 0.1;
+                    if (gameState.p1Time <= 0) {
+                        gameState.p1Time = 0;
+                        updateClocksDisplay();
+                        endGame(2);
+                        return;
+                    }
+                } else {
+                    gameState.p2Time -= 0.1;
+                    if (gameState.p2Time <= 0) {
+                        gameState.p2Time = 0;
+                        updateClocksDisplay();
+                        endGame(1);
+                        return;
+                    }
+                }
+                updateClocksDisplay();
+            }, 100);
+        }
+
+        function updateClocksDisplay() {
+            p1TimerDisp.textContent = gameState.p1Time.toFixed(1);
+            p2TimerDisp.textContent = gameState.p2Time.toFixed(1);
+
+            if (gameState.p1Time <= 10) {
+                p1TimerDisp.classList.add('text-rose-500', 'animate-pulse');
+            } else {
+                p1TimerDisp.classList.remove('text-rose-500', 'animate-pulse');
+            }
+
+            if (gameState.p2Time <= 10) {
+                p2TimerDisp.classList.add('text-rose-500', 'animate-pulse');
+            } else {
+                p2TimerDisp.classList.remove('text-rose-500', 'animate-pulse');
+            }
+        }
+
+        function updateTurnUI() {
+            const isP1 = gameState.activePlayer === 1;
+            activePlayerName.textContent = isP1 ? gameState.p1Name : gameState.p2Name;
+
+            if (isP1) {
+                p1ClockCard.className = "bg-slate-900 border-2 border-cyan-400 rounded-2xl p-4 sm:p-6 text-center shadow-lg neon-border-blue animate-active-turn relative overflow-hidden";
+                p2ClockCard.className = "bg-slate-950 border-2 border-slate-800/80 rounded-2xl p-4 sm:p-6 text-center opacity-60 relative overflow-hidden";
+                turnIndicator.className = "text-sm font-bold px-4 py-1.5 rounded-full bg-cyan-500/10 text-cyan-400 border border-cyan-500/30";
+            } else {
+                p2ClockCard.className = "bg-slate-900 border-2 border-purple-400 rounded-2xl p-4 sm:p-6 text-center shadow-lg neon-border-purple animate-active-turn relative overflow-hidden";
+                p1ClockCard.className = "bg-slate-950 border-2 border-slate-800/80 rounded-2xl p-4 sm:p-6 text-center opacity-60 relative overflow-hidden";
+                turnIndicator.className = "text-sm font-bold px-4 py-1.5 rounded-full bg-purple-500/10 text-purple-400 border border-purple-500/30";
+            }
+        }
+
+        function switchTurn() {
+            gameState.activePlayer = gameState.activePlayer === 1 ? 2 : 1;
+            updateTurnUI();
+        }
+
+        function displayCurrentQuestion() {
+            if (gameState.currentQuestionIndex >= gameState.questionsList.length) {
+                gameState.currentQuestionIndex = 0;
+                gameState.questionsList = shuffleArray([...gameState.questionsList]);
+            }
+
+            const q = gameState.questionsList[gameState.currentQuestionIndex];
+            questionText.textContent = q.q;
+
+            if (q.img) {
+                questionImage.src = q.img;
+                imageContainer.classList.remove('hidden');
+            } else {
+                imageContainer.classList.add('hidden');
+            }
+
+            const optionsWithIndex = q.options.map((opt, idx) => ({ text: opt, isCorrect: idx === q.answer }));
+            const shuffledOptions = shuffleArray(optionsWithIndex);
+
+            answersArea.innerHTML = '';
+            shuffledOptions.forEach((opt) => {
+                const btn = document.createElement('button');
+                btn.className = "w-full py-3.5 px-4 bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-700 hover:border-slate-500 font-bold rounded-xl text-sm sm:text-base transition-all duration-150 transform active:scale-95 text-center flex items-center justify-center";
+                btn.textContent = opt.text;
+                btn.onclick = () => handleAnswer(opt.isCorrect, btn);
+                answersArea.appendChild(btn);
+            });
+        }
+
+        function handleAnswer(isCorrect, btnElement) {
+            if (!gameState.isPlaying) return;
+
+            if (isCorrect) {
+                sounds.playCorrect();
+                btnElement.classList.remove('bg-slate-950', 'border-slate-700');
+                btnElement.classList.add('bg-emerald-600', 'text-white', 'border-emerald-400');
+                
+                showFeedback("إجابة صحيحة! نُقل الدور ➔", "success");
+
+                setTimeout(() => {
+                    gameState.currentQuestionIndex++;
+                    switchTurn();
+                    displayCurrentQuestion();
+                }, 300);
+
+            } else {
+                sounds.playWrong();
+                btnElement.classList.remove('bg-slate-950', 'border-slate-700');
+                btnElement.classList.add('bg-rose-600', 'text-white', 'border-rose-400');
+                questionBox.classList.add('animate-shake');
+
+                showFeedback("إجابة خاطئة! حاول مرة أخرى", "error");
+
+                setTimeout(() => {
+                    questionBox.classList.remove('animate-shake');
+                    btnElement.classList.remove('bg-rose-600', 'text-white', 'border-rose-400');
+                    btnElement.classList.add('bg-slate-950', 'border-slate-700');
+                }, 400);
+            }
+        }
+
+        function handlePass() {
+            if (!gameState.isPlaying) return;
+
+            sounds.playPass();
+            if (gameState.activePlayer === 1) {
+                gameState.p1Time = Math.max(0, gameState.p1Time - 3.0);
+            } else {
+                gameState.p2Time = Math.max(0, gameState.p2Time - 3.0);
+            }
+            updateClocksDisplay();
+
+            showFeedback("تخطي (-3 ثوانٍ) ⏩", "warning");
+
+            if (gameState.p1Time <= 0) {
+                endGame(2);
+                return;
+            } else if (gameState.p2Time <= 0) {
+                endGame(1);
+                return;
+            }
+
+            gameState.currentQuestionIndex++;
+            displayCurrentQuestion();
+        }
+
+        function showFeedback(text, type) {
+            feedbackToast.textContent = text;
+            feedbackToast.className = "absolute top-3 opacity-100 transition-opacity duration-300 px-4 py-1.5 rounded-full text-xs font-bold pointer-events-none z-20 ";
+            
+            if (type === "success") {
+                feedbackToast.classList.add("bg-emerald-500/20", "text-emerald-400", "border", "border-emerald-500/40");
+            } else if (type === "error") {
+                feedbackToast.classList.add("bg-rose-500/20", "text-rose-400", "border", "border-rose-500/40");
+            } else {
+                feedbackToast.classList.add("bg-amber-500/20", "text-amber-400", "border", "border-amber-500/40");
+            }
+
+            setTimeout(() => {
+                feedbackToast.classList.add("opacity-0");
+            }, 900);
+        }
+
+        function endGame(winnerPlayerNumber) {
+            gameState.isPlaying = false;
+            clearInterval(gameState.timerInterval);
+            sounds.playWin();
+
+            const winnerNameText = winnerPlayerNumber === 1 ? gameState.p1Name : gameState.p2Name;
+            const remainingTime = winnerPlayerNumber === 1 ? gameState.p1Time : gameState.p2Time;
+
+            winnerName.textContent = winnerNameText;
+            winnerTime.querySelector('span').textContent = remainingTime.toFixed(1);
+
+            gameScreen.classList.remove('flex');
+            gameScreen.classList.add('hidden');
+            winnerScreen.classList.remove('hidden');
+        }
+
+        function resetToSetup() {
+            clearInterval(gameState.timerInterval);
+            gameState.isPlaying = false;
+            gameScreen.classList.remove('flex');
+            gameScreen.classList.add('hidden');
+            winnerScreen.classList.add('hidden');
+            restartBtn.classList.remove('flex');
+            restartBtn.classList.add('hidden');
+            setupScreen.classList.remove('hidden');
+        }
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        // Initialize application when loaded
+        window.onload = initApp;
+    </script>
+</body>
+</html>
